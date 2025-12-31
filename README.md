@@ -1,93 +1,127 @@
-# 🩺 Project Aethelgard: The LLM Surgeon
+# Project Aethelgard: LLM Observability & Risk Governance
 
-> **Winner of the Google Cloud x Datadog Hackathon 2025 (Candidate)**
-> *Transforming LLM Observability from Passive Monitoring to Active Diagnosis.*
+**A real-time semantic analysis gateway for Large Language Models, integrated with Datadog and Google Vertex AI.**
 
-![Python](https://img.shields.io/badge/Python-3.10-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-High%20Performance-green) ![Gemini](https://img.shields.io/badge/AI-Vertex%20AI%20Gemini-orange) ![Datadog](https://img.shields.io/badge/Observability-Datadog-purple)
+![Status](https://img.shields.io/badge/Status-Prototype-blue) ![License](https://img.shields.io/badge/License-MIT-green) ![Python](https://img.shields.io/badge/Python-3.10-3776AB) ![Datadog](https://img.shields.io/badge/Datadog-Integrated-632CA6)
 
-## 🚨 The Problem
-Large Language Models (LLMs) are "Black Boxes." When they hallucinate or give dangerous advice in high-stakes industries (Finance, Healthcare), standard monitoring tools fail. They tell you *that* an error happened (500 Internal Error), but they don't tell you **why** the model lied or how confident it was.
+## Overview
 
-## 💡 The Solution: "The Digital Autopsy"
-**Project Aethelgard** is an AI Governance Gateway that sits between your users and your LLM. It acts as a **Real-Time Surgeon**:
+Project Aethelgard addresses the "Black Box" problem in Generative AI. While standard monitoring tools track latency and error rates (500s), they fail to detect qualitative failures such as hallucinations, factual inaccuracies, or safety violations.
 
-1.  **The Patient (Gemini Pro):** Generates the response.
-2.  **The Surgeon (Gemini Flash):** A specialized, temperature-0 model that performs a "Live MRI" on the answer. It grades factual accuracy and safety (0-100) before the user even sees it.
-3.  **The Monitor (Datadog):** We stream these "Risk Scores" to Datadog. If the risk spikes, we visualize the "Heartbeat" of the model in real-time.
+This project implements an **Active Governance Layer** that sits between the user and the LLM. Instead of passively logging requests, Aethelgard uses a secondary "Evaluator LLM" to grade every response in real-time. These risk scores are streamed via UDP to a Datadog agent, allowing DevOps teams to visualize model behavior and trigger alerts on semantic failures.
 
----
+## System Architecture
 
-## 📸 Screenshots
-
-### 1. The "Attack" Simulation
-*We forced the model to generate illegal advice. The Surgeon caught it instantly.*
-![Streamlit Interface](https://via.placeholder.com/800x400?text=Insert+Screenshot+of+Red+Streamlit+Here)
-
-### 2. The Datadog "Heartbeat"
-*Real-time visualization of the Hallucination Spike in Datadog.*
-![Datadog Dashboard](https://via.placeholder.com/800x400?text=Insert+Screenshot+of+Datadog+Graph+Here)
-
----
-
-## 🏗️ Architecture
+The system follows a "Generator-Evaluator" pattern to ensure response integrity.
 
 ```mermaid
 graph LR
-    A[User Request] --> B(FastAPI Gateway)
-    B --> C{The Patient<br>Gemini Pro}
-    C --> D[Generated Answer]
-    D --> E{The Surgeon<br>Gemini Flash}
-    E --> F[Risk Score Calculation]
+    A[User Request] --> B[FastAPI Gateway]
+    B --> C{Generator Model}
+    C --> D[Draft Response]
+    D --> E{Evaluator Model}
+    E --> F[Risk Analysis & Scoring]
     F --> G((Datadog Agent))
-    G --> H[Dashboard Alert]
     F --> B
-    B --> I[Frontend UI]
+    B --> I[Frontend / Client]
+```
 
-🛠️ Tech Stack
+Workflow
 
-    Orchestration: Python FastAPI
+    Generation: The primary model (Gemini Pro) generates a response to the user's prompt.
 
-    GenAI: Google Vertex AI (Gemini Pro & Gemini 1.5 Flash)
+    Evaluation (The Surgeon): Before the response is finalized, a secondary lightweight model (Gemini Flash) analyzes the text for factual consistency and safety compliance.
+
+    Telemetry: A risk score (0-100) is calculated and sent to Datadog via the DogStatsD protocol (llm.surgeon.risk_score).
+
+    User Delivery: The response is returned to the client alongside its diagnostic metadata.
+
+Key Features
+
+    Semantic Guardrails: Utilizes a secondary LLM to understand context and intent, providing significantly higher accuracy than regex-based filters.
+
+    Real-Time Telemetry: Emits custom metrics to Datadog, enabling time-series visualization of hallucination rates and safety incidents.
+
+    Adversarial Simulation: Includes a specific testing mode to inject "jailbreak" prompts, demonstrating the system's ability to detect and flag high-risk content under pressure.
+
+    Scalable Architecture: Built on FastAPI with asynchronous request handling to minimize latency overhead during the evaluation phase.
+
+Tech Stack
+
+    Backend: Python 3.10, FastAPI, Uvicorn
+
+    AI/ML: Google Vertex AI (Gemini Pro for generation, Gemini 1.5 Flash for evaluation)
 
     Observability: Datadog (DogStatsD, Custom Metrics)
 
     Frontend: Streamlit
 
-⚡ Key Features
+Installation & Setup
+Prerequisites
 
-    🛡️ Semantic Guardrails: We don't just use Regex. We use a secondary LLM to semantically understand if an answer is dangerous.
+    Python 3.10 or higher
 
-    📉 Real-Time Risk Telemetry: Emits llm.surgeon.risk_score metric to Datadog via UDP.
+    A Google Cloud Platform project with Vertex AI API enabled
 
-    🔴 Attack Simulation Mode: A built-in "Jailbreak" button to demonstrate the system's resilience for judges.
+    Datadog Agent installed and running (listening on port 8125)
 
-🚀 How to Run
-1. Prerequisites
+1. Clone the Repository
+Bash
 
-    Python 3.10+
+git clone [https://github.com/vinayakkamatcodes/Aethelgard.git](https://github.com/vinayakkamatcodes/Aethelgard.git)
+cd Aethelgard
 
-    Datadog Agent installed (Listening on port 8125)
+2. Install Dependencies
 
-    Google Cloud Service Account
+It is recommended to use a virtual environment.
+Bash
 
-2. Installation
-    # Clone the repo
-    git clone [https://github.com/your-username/llm-surgeon.git](https://github.com/your-username/llm-surgeon.git)
+pip install -r requirements.txt
 
-    # Install dependencies
-    pip install -r requirements.txt
+3. Configuration
 
-3. Start the System
-    # Terminal 1: Start the API Backend
-    uvicorn app.main:app --reload
+Ensure your Google Cloud credentials are set up. You may need to authenticate via the gcloud CLI:
+Bash
 
-    # Terminal 2: Start the Frontend
-    streamlit run app/frontend.py
+gcloud auth application-default login
 
-4.View in Datadog
+4. Running the Application
 
-    Go to Metrics Explorer and search for: llm.surgeon.risk_score
+The system requires two services to run simultaneously: the API backend and the frontend interface.
 
-🎥 Video Demo
+Start the Backend API:
+Bash
 
-[Link to YouTube Video]
+uvicorn app.main:app --reload
+
+Start the Dashboard:
+Bash
+
+streamlit run app/frontend.py
+
+Monitoring & Metrics
+
+Once the application is running, metrics are sent to Datadog under the namespace llm.surgeon.
+
+    Metric Name: llm.surgeon.risk_score
+
+    Type: Gauge
+
+    Description: A quantitative measure (0-100) of the risk detected in the latest model response.
+
+## How to Run
+1. Install dependencies: `pip install -r requirements.txt`
+2. Run the Backend: `uvicorn app.main:app --reload`
+3. Run the Frontend: `streamlit run app/frontend.py`
+4. Run Traffic Generator: `python traffic_generator.py`
+
+To view these metrics, navigate to the Metrics Explorer in your Datadog dashboard and query for llm.surgeon.risk_score.
+Screenshots
+
+Attack Simulation Mode The system detecting an adversarial prompt and flagging it as Critical Risk.
+
+Datadog Visualization Real-time tracking of risk spikes corresponding to the attack simulation.
+License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+

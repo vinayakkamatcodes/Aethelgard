@@ -109,6 +109,12 @@ Once the application is running, metrics are sent to Datadog under the namespace
 
     Description: A quantitative measure (0-100) of the risk detected in the latest model response.
 
+## How to Run
+1. Install dependencies: `pip install -r requirements.txt`
+2. Run the Backend: `uvicorn app.main:app --reload`
+3. Run the Frontend: `streamlit run app/frontend.py`
+4. Run Traffic Generator: `python traffic_generator.py`
+
 To view these metrics, navigate to the Metrics Explorer in your Datadog dashboard and query for llm.surgeon.risk_score.
 Screenshots
 
